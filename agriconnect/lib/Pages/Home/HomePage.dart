@@ -10,7 +10,7 @@ class HomePage extends StatelessWidget {
     {"name": "Strawberry Fields", "location": "Limpopo"},
   ];
   final List<Map<String, dynamic>> menuItems = [
-    {"title": "Profile", "icon": Icons.person, "route": "/home"},
+    {"title": "Profile", "icon": Icons.person, "route": "/profile"},
     {"title": "Check Weather", "icon": Icons.cloud, "route": "/crops"},
     {"title": "Add Farm", "icon": Icons.add_business, "route": "/resources"},
     {"title": "Give Feedback", "icon": Icons.feedback, "route": "/feedback"},
