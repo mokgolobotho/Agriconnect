@@ -13,6 +13,7 @@ class HomePage extends StatelessWidget {
     {"title": "Profile", "icon": Icons.person, "route": "/profile"},
     {"title": "Check Weather", "icon": Icons.cloud, "route": "/crops"},
     {"title": "Add Farm", "icon": Icons.add_business, "route": "/resources"},
+    {"title": "Previous Alerts", "icon": Icons.add_alert, "route": "/resources"},
     {"title": "Give Feedback", "icon": Icons.feedback, "route": "/feedback"},
   ];
 
