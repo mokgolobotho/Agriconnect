@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'Pages/Farm/SensorDetailPage.dart';
+import 'Pages/User/EditProfilePage.dart';
 import 'Pages/User/LoginPage.dart';
 import 'Pages/Farm/FarmDetailPage.dart';
 import 'Pages/Home/HomePage.dart';
@@ -38,7 +39,7 @@ class MyApp extends StatelessWidget {
               //sensorData: args["sensorData"],
           );
         },
-
+        '/editProfile': (context) => EditProfilePage(),
       },
     );
   }

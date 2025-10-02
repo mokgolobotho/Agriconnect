@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import '../../Services/api_service.dart';
 import '../Home/HomePage.dart';
 
 class RegistrationPage extends StatefulWidget {
@@ -15,20 +15,27 @@ class _RegistrationPageState extends State<RegistrationPage> {
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
 
+  bool _isLoading = false;
+
   bool _isValidEmail(String email) {
     final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
     return emailRegex.hasMatch(email);
   }
 
-  void _register() {
-    String name = nameController.text.trim();
-    String surname = surnameController.text.trim();
-    String phone = phoneController.text.trim();
+  Future<void> _register() async {
+    String firstName = nameController.text.trim();
+    String lastName = surnameController.text.trim();
+    String cellNumber = phoneController.text.trim();
     String email = emailController.text.trim();
     String password = passwordController.text;
     String confirmPassword = confirmPasswordController.text;
 
-    if (name.isEmpty || surname.isEmpty || phone.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+    if (firstName.isEmpty ||
+        lastName.isEmpty ||
+        cellNumber.isEmpty ||
+        email.isEmpty ||
+        password.isEmpty ||
+        confirmPassword.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("All fields are required")),
       );
@@ -49,9 +56,34 @@ class _RegistrationPageState extends State<RegistrationPage> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Registered $name $surname successfully ✅")),
+    setState(() => _isLoading = true);
+
+    final result = await ApiService.registerUser(
+      username: "$firstName $lastName", // ✅ full name as username
+      email: email,
+      cellNumber: cellNumber,
+      gender: "Not Specified", // can add a dropdown later
+      title: "Mr/Ms",          // can add a dropdown later
+      password: password,
     );
+
+    setState(() => _isLoading = false);
+
+    if (result['success']) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Registered successfully ✅")),
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => HomePage()),
+      );
+    } else {
+      String errorMsg = result['error'].toString();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $errorMsg")),
+      );
+    }
   }
 
   @override
@@ -66,7 +98,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
               TextField(
                 controller: nameController,
                 decoration: InputDecoration(
-                  labelText: "Name",
+                  labelText: "First Name",
                   prefixIcon: Icon(Icons.person),
                   border: OutlineInputBorder(),
                 ),
@@ -75,7 +107,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
               TextField(
                 controller: surnameController,
                 decoration: InputDecoration(
-                  labelText: "Surname",
+                  labelText: "Last Name",
                   prefixIcon: Icon(Icons.person_outline),
                   border: OutlineInputBorder(),
                 ),
@@ -121,15 +153,12 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 ),
               ),
               SizedBox(height: 25),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => HomePage()),
-                  );
-                },
+              _isLoading
+                  ? CircularProgressIndicator() // ✅ Show loader
+                  : ElevatedButton(
+                onPressed: _register,
                 style: ElevatedButton.styleFrom(
-                  minimumSize: Size(double.infinity, 50), // full width
+                  minimumSize: Size(double.infinity, 50),
                 ),
                 child: Text("Register", style: TextStyle(fontSize: 18)),
               ),

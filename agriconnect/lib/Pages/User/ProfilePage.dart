@@ -12,14 +12,13 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   final Map<String, String> profileDetails = {
     "Name": "John Doe",
-    "Email": "john.doe@example.com",
+    "Email": "johndoe@gmail.com",
     "Phone": "+27 123 456 789",
     "Location": "Pretoria, South Africa",
   };
 
   final List<Map<String, dynamic>> menuItems = [
     {"title": "Home", "icon": Icons.person, "route": "/home"},
-    {"title": "Check Weather", "icon": Icons.cloud, "route": "/crops"},
     {"title": "Add Farm", "icon": Icons.add_business, "route": "/resources"},
     {"title": "Give Feedback", "icon": Icons.feedback, "route": "/feedback"},
   ];
@@ -32,15 +31,14 @@ class _ProfilePageState extends State<ProfilePage> {
         centerTitle: true,
         elevation: 2,
       ),
-      drawer: AppDrawer( menuItems: menuItems,
-          currentPage: "Profile"),
+      drawer: AppDrawer(menuItems: menuItems, currentPage: "Profile"),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             CircleAvatar(
               radius: 60,
-              backgroundImage: AssetImage("assets/profile.jpg"), // or NetworkImage
+              backgroundImage: AssetImage("*/Assets/profile.png"), // or NetworkImage
             ),
             const SizedBox(height: 20),
 
@@ -75,6 +73,21 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 );
               }).toList(),
+            ),
+
+            const SizedBox(height: 30),
+
+            // Edit button
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pushNamed(context, "/editProfile");
+              },
+              icon: Icon(Icons.edit),
+              label: Text("Edit Profile"),
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                textStyle: TextStyle(fontSize: 16),
+              ),
             ),
           ],
         ),
