@@ -59,11 +59,11 @@ class _RegistrationPageState extends State<RegistrationPage> {
     setState(() => _isLoading = true);
 
     final result = await ApiService.registerUser(
-      username: "$firstName $lastName", // ✅ full name as username
+      first_name: firstName,
+      last_name: lastName,
+      username: email,
       email: email,
       cellNumber: cellNumber,
-      gender: "Not Specified", // can add a dropdown later
-      title: "Mr/Ms",          // can add a dropdown later
       password: password,
     );
 

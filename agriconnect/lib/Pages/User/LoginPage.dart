@@ -1,6 +1,7 @@
 import 'package:agriconnect/Pages/User/RegistrationPage.dart';
 import 'package:flutter/material.dart';
 
+import '../../Services/api_service.dart';
 import '../Home/HomePage.dart';
 
 
@@ -14,21 +15,36 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  void _login() {
+  // Correct login function
+  Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
-      // Here you can add authentication logic
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Logging in as ${_emailController.text}')),
+      final result = await ApiService.loginUser(
+        username: _emailController.text,
+        password: _passwordController.text,
       );
+
+      if (result['success']) {
+        final user = result['data']['user'];
+        print('Logged in as: ${user['username']}');
+
+        // Navigate to HomePage after successful login
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => HomePage()),
+        );
+      } else {
+        // Show error if login fails
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['error'])),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Agriconnect'),
-      ),
+      appBar: AppBar(title: Text('Agriconnect')),
       body: Padding(
         padding: EdgeInsets.all(20),
         child: Form(
@@ -36,6 +52,7 @@ class _LoginPageState extends State<LoginPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              // Email field
               TextFormField(
                 controller: _emailController,
                 decoration: InputDecoration(
@@ -45,16 +62,14 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 keyboardType: TextInputType.emailAddress,
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your email';
-                  }
-                  if (!value.contains('@')) {
-                    return 'Enter a valid email';
-                  }
+                  if (value == null || value.isEmpty) return 'Please enter your email';
+                  if (!value.contains('@')) return 'Enter a valid email';
                   return null;
                 },
               ),
               SizedBox(height: 20),
+
+              // Password field
               TextFormField(
                 controller: _passwordController,
                 decoration: InputDecoration(
@@ -64,39 +79,31 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 obscureText: true,
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your password';
-                  }
-                  if (value.length < 6) {
-                    return 'Password must be at least 6 characters';
-                  }
+                  if (value == null || value.isEmpty) return 'Please enter your password';
+                  if (value.length < 6) return 'Password must be at least 6 characters';
                   return null;
                 },
               ),
               SizedBox(height: 30),
+
+              // Buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
+                  // Login button
                   Expanded(
                     child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: Size(0, 50), // height fixed, width flexible
-                      ),
-                      onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => HomePage()),
-                        );
-                      },
+                      style: ElevatedButton.styleFrom(minimumSize: Size(0, 50)),
+                      onPressed: _login, // <-- Call _login() here
                       child: Text('Login', style: TextStyle(fontSize: 18)),
                     ),
                   ),
-                  SizedBox(width: 20), // spacing between buttons
+                  SizedBox(width: 20),
+
+                  // Register button
                   Expanded(
                     child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: Size(0, 50),
-                      ),
+                      style: ElevatedButton.styleFrom(minimumSize: Size(0, 50)),
                       onPressed: () {
                         Navigator.push(
                           context,
@@ -107,7 +114,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 ],
-              )
+              ),
             ],
           ),
         ),

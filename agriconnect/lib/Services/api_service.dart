@@ -10,8 +10,6 @@ class ApiService {
     required String last_name,
     required String email,
     required String cellNumber,
-    required String gender,
-    required String title,
     required String password,
   }) async {
     final response = await http.post(
@@ -23,8 +21,6 @@ class ApiService {
         "username": email,
         "email": email,
         "cell_number": cellNumber,
-        "gender": gender,
-        "title": title,
         "password": password,
       }),
     );
@@ -33,6 +29,29 @@ class ApiService {
       return {"success": true, "data": jsonDecode(response.body)};
     } else {
       return {"success": false, "error": jsonDecode(response.body)};
+    }
+  }
+
+  static Future<Map<String, dynamic>> loginUser({
+    required String username,
+    required String password,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/login/'),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "username": username,
+        "password": password,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return {"success": true, "data": jsonDecode(response.body)};
+    } else {
+      return {
+        "success": false,
+        "error": jsonDecode(response.body)['error'] ?? 'Login failed'
+      };
     }
   }
 }
