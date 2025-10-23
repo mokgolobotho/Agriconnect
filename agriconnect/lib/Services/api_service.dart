@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:path/path.dart';
 
 class ApiService {
   static const String baseUrl = 'http://192.168.0.117:8000/api';
@@ -52,6 +53,46 @@ class ApiService {
         "success": false,
         "error": jsonDecode(response.body)['error'] ?? 'Login failed'
       };
+    }
+  }
+
+  static Future<Map<String, dynamic>> AddFarm({
+    required int owner_id,
+    required String name,
+    required String suburb,
+    required String city,
+    required String province,
+    required String country,
+    required int code,
+    required double latitude,
+    required double longitude,
+    required double length,
+    required double width,
+    required double approximate_size,
+  })async{
+    final response = await http.post(
+      Uri.parse('$baseUrl/addFarm/'),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "owner_id": owner_id,
+        "name": name,
+        "suburb": suburb,
+        "city": city,
+        "province": province,
+        "country": country,
+        "code": code,
+        "latitude": latitude,
+        "longitude": longitude,
+        "length": length,
+        "width": width,
+        "approximate_size": approximate_size,
+      }),
+    );
+
+    if (response.statusCode == 201){
+      return {"success": true, "data": jsonDecode(response.body)};
+    }else{
+      return {"success": false, "data": jsonDecode(response.body)};
     }
   }
 }

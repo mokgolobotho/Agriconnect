@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../Widgets/FarmCard.dart';
 import '../../Widgets/AppDrawer.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 class HomePage extends StatelessWidget {
   final List<Map<String, String>> farms = [
@@ -16,6 +18,14 @@ class HomePage extends StatelessWidget {
     {"title": "Previous Alerts", "icon": Icons.add_alert, "route": "/resources"},
     {"title": "Give Feedback", "icon": Icons.feedback, "route": "/feedback"},
   ];
+  Future<Map<String, String?>> getUserSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    return {
+      'username': prefs.getString('username'),
+      'email': prefs.getString('email'),
+      'token': prefs.getString('token'),
+    };
+  }
 
   @override
   Widget build(BuildContext context) {

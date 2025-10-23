@@ -1,6 +1,6 @@
 import 'package:agriconnect/Pages/User/RegistrationPage.dart';
 import 'package:flutter/material.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../Services/api_service.dart';
 import '../Home/HomePage.dart';
 
@@ -15,7 +15,6 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  // Correct login function
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
       final result = await ApiService.loginUser(
@@ -27,13 +26,15 @@ class _LoginPageState extends State<LoginPage> {
         final user = result['data']['user'];
         print('Logged in as: ${user['username']}');
 
-        // Navigate to HomePage after successful login
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_id', user['id']);
+        await prefs.setString('token', result['data']['token'] ?? '');
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => HomePage()),
         );
       } else {
-        // Show error if login fails
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result['error'])),
         );
@@ -52,7 +53,6 @@ class _LoginPageState extends State<LoginPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Email field
               TextFormField(
                 controller: _emailController,
                 decoration: InputDecoration(
@@ -69,7 +69,6 @@ class _LoginPageState extends State<LoginPage> {
               ),
               SizedBox(height: 20),
 
-              // Password field
               TextFormField(
                 controller: _passwordController,
                 decoration: InputDecoration(
@@ -86,7 +85,6 @@ class _LoginPageState extends State<LoginPage> {
               ),
               SizedBox(height: 30),
 
-              // Buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -100,7 +98,6 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   SizedBox(width: 20),
 
-                  // Register button
                   Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(minimumSize: Size(0, 50)),
