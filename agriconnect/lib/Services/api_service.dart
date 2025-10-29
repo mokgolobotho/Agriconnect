@@ -3,7 +3,9 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.0.117:8000/api';
+  //static const String baseUrl = 'http://192.168.0.117:8000/api';
+  static const String baseUrl = 'http://192.168.50.140:8000/api';
+
 
   static Future<Map<String, dynamic>> registerUser({
     required String username,
@@ -93,6 +95,68 @@ class ApiService {
       return {"success": true, "data": jsonDecode(response.body)};
     }else{
       return {"success": false, "data": jsonDecode(response.body)};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getUserFarms({
+    required int owner_id,
+  })async{
+    final response = await http.get(
+      Uri.parse('$baseUrl/users/farms/$owner_id'),
+      headers: {"Content-Type": "application/json"},
+    );
+
+    if (response.statusCode == 200){
+    return {"success": true, "data": jsonDecode(response.body)};
+    }else{
+    return {"success": false, "data": jsonDecode(response.body)};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getFarmCrops({
+    required int farm_id,
+  })async{
+    final response = await http.get(
+      Uri.parse('$baseUrl/getFarmCrops/$farm_id'),
+      headers: {"content-type": "application/json"}
+    );
+
+    if(response.statusCode == 200){
+      return{"success": true, "data": jsonDecode(response.body)};
+    }else{
+      return {"success": false, "data": jsonDecode(response.body)};
+    }
+  }
+
+  static Future<Map<String, dynamic>> AddCrops({
+    required int farmId,
+    required String name,
+    required int quantity,
+    required String plantingDate,
+    required String harvestDate,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/addCrop/'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "farm_id": farmId,
+          "name": name,
+          "quantity": quantity,
+          //"planting_date": plantingDate,
+          //"harvest_date": harvestDate,
+          "created_at": DateTime.now().toIso8601String(),
+          "updated_at": DateTime.now().toIso8601String(),
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        return {"success": true, "data": jsonDecode(response.body)};
+      } else {
+        return {"success": false, "data": jsonDecode(response.body)};
+      }
+    } catch (e) {
+      return {"success": false, "data": {"error": e.toString()}};
     }
   }
 }

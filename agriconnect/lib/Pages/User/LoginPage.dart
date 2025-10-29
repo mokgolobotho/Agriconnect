@@ -27,7 +27,7 @@ class _LoginPageState extends State<LoginPage> {
         print('Logged in as: ${user['username']}');
 
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('user_id', user['id']);
+        await prefs.setInt('user_id', user['id']);
         await prefs.setString('token', result['data']['token'] ?? '');
 
         Navigator.pushReplacement(

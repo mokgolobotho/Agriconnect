@@ -6,6 +6,7 @@ import 'Pages/User/LoginPage.dart';
 import 'Pages/Farm/FarmDetailPage.dart';
 import 'Pages/Home/HomePage.dart';
 import 'Pages/User/ProfilePage.dart';
+import 'Pages/Farm/AddFarmPage.dart';
 
 void main() {
   runApp(MyApp());
@@ -28,10 +29,12 @@ class MyApp extends StatelessWidget {
         '/farmDetail': (context) {
           final args = ModalRoute.of(context)!.settings.arguments as Map<String, String>;
           return FarmDetailPage(
+            farm_id: int.parse(args["farm_id"]!),
             name: args["name"]!,
             location: args["location"]!,
           );
         },
+        '/addFarm': (context) => AddFarmPage(),
         '/sensorData': (context) {
           final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
           return SensorDetailPage(
