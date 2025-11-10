@@ -1,9 +1,9 @@
 import 'package:agriconnect/Pages/User/RegistrationPage.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../Services/api_service.dart';
 import '../Home/HomePage.dart';
-
 
 class LoginPage extends StatefulWidget {
   @override
@@ -15,21 +15,57 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  @override
+  void initState() {
+    super.initState();
+    _checkCachedLogin();
+  }
+
+  // Check cached login
+  Future<void> _checkCachedLogin() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getInt('user_id') ?? 0;
+    if (userId > 0) {
+      // Already logged in, go to HomePage
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => HomePage()),
+      );
+    }
+  }
+
+  // Save FCM token to backend
+  Future<void> _saveFcmToken(int userId) async {
+    String? fcmToken = await FirebaseMessaging.instance.getToken();
+    if (fcmToken != null) {
+      await ApiService.saveFcmToken(
+        userId: userId,
+        fcmToken: fcmToken,
+        deviceName: "My Device", // optionally get from platform info
+      );
+      print("FCM token saved: $fcmToken");
+    }
+  }
+
+  // Login method
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
       final result = await ApiService.loginUser(
-        username: _emailController.text,
+        username: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
       if (result['success']) {
         final user = result['data']['user'];
-        print('Logged in as: ${user['username']}');
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setInt('user_id', user['id']);
         await prefs.setString('token', result['data']['token'] ?? '');
 
+        // Save FCM token
+        await _saveFcmToken(user['id']);
+
+        // Navigate to HomePage
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => HomePage()),
@@ -68,7 +104,6 @@ class _LoginPageState extends State<LoginPage> {
                 },
               ),
               SizedBox(height: 20),
-
               TextFormField(
                 controller: _passwordController,
                 decoration: InputDecoration(
@@ -84,7 +119,6 @@ class _LoginPageState extends State<LoginPage> {
                 },
               ),
               SizedBox(height: 30),
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -92,12 +126,12 @@ class _LoginPageState extends State<LoginPage> {
                   Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(minimumSize: Size(0, 50)),
-                      onPressed: _login, // <-- Call _login() here
+                      onPressed: _login,
                       child: Text('Login', style: TextStyle(fontSize: 18)),
                     ),
                   ),
                   SizedBox(width: 20),
-
+                  // Register button
                   Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(minimumSize: Size(0, 50)),

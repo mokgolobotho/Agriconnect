@@ -1,9 +1,10 @@
 import 'dart:convert';
+import 'package:agriconnect/Pages/Farm/FarmAlertsPage.dart';
 import 'package:flutter/material.dart';
 import '../../Services/api_service.dart';
 import '../../Widgets/AppDrawer.dart';
 import '../Crop/CropDashboardPage.dart';
-import '../Crop/AddCropPage.dart'; // ✅ import the AddCropPage
+import '../Crop/AddCropPage.dart';
 
 class FarmDetailPage extends StatefulWidget {
   final String name;
@@ -25,32 +26,32 @@ class _FarmDetailPageState extends State<FarmDetailPage> {
   bool isLoading = true;
   List<dynamic> crops = [];
 
-  final List<Map<String, dynamic>> menuItems = [
-    {"title": "Home", "icon": Icons.home, "route": "/home"},
-    {"title": "Add Crop", "icon": Icons.grass, "route": "/crops"},
-    {"title": "Resource list", "icon": Icons.list_alt, "route": "/resources"},
-    {"title": "Give Feedback", "icon": Icons.feedback, "route": "/feedback"},
-    {"title": "Logout", "icon": Icons.logout, "route": "/login"},
-  ];
+  late List<Map<String, dynamic>> menuItems;
 
   @override
   void initState() {
     super.initState();
     fetchFarmCrops(widget.farm_id);
+
+    // Pass navigation callbacks instead of route strings
+    menuItems = [
+      {"title": "Home", "icon": Icons.home, "route": "/home"},
+      {"title": "Give Feedback", "icon": Icons.feedback, "onTap": () => Navigator.pushNamed(context, '/feedback')},
+      {"title": "Logout", "icon": Icons.logout, "onTap": () => Navigator.pushReplacementNamed(context, '/login')},
+    ];
   }
 
   Future<void> fetchFarmCrops(int farm_id) async {
     setState(() => isLoading = true);
     try {
       final response = await ApiService.getFarmCrops(farm_id: farm_id);
-
       if (response['success']) {
         setState(() {
           crops = response['data']['crops'];
           isLoading = false;
         });
       } else {
-        throw Exception("Failed to load crops ");
+        throw Exception("Failed to load crops");
       }
     } catch (e) {
       setState(() => isLoading = false);
@@ -66,7 +67,24 @@ class _FarmDetailPageState extends State<FarmDetailPage> {
       appBar: AppBar(
         title: Text(widget.name),
         centerTitle: true,
-        backgroundColor: Colors.green.shade700,
+        backgroundColor: Colors.green.shade200,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add_alert, color: Colors.red,),
+            tooltip: "View Farm Alerts",
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => FarmAlertsPage(
+                    farmId: widget.farm_id,
+                    farmName: widget.name,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       drawer: AppDrawer(menuItems: menuItems, currentPage: "farmDetail"),
       body: Padding(
@@ -77,13 +95,11 @@ class _FarmDetailPageState extends State<FarmDetailPage> {
             Text("📍 Location: ${widget.location}",
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
             const SizedBox(height: 20),
-
             const Text(
               "🌾 Crops",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-
             Expanded(
               child: isLoading
                   ? const Center(child: CircularProgressIndicator())
@@ -136,7 +152,6 @@ class _FarmDetailPageState extends State<FarmDetailPage> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
-          // Navigate to AddCropPage and wait for result
           final result = await Navigator.push(
             context,
             MaterialPageRoute(
@@ -147,7 +162,6 @@ class _FarmDetailPageState extends State<FarmDetailPage> {
             ),
           );
 
-          // If a crop was added, refresh the crop list
           if (result == true) {
             fetchFarmCrops(widget.farm_id);
           }

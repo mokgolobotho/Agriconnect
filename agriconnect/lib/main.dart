@@ -7,8 +7,13 @@ import 'Pages/Farm/FarmDetailPage.dart';
 import 'Pages/Home/HomePage.dart';
 import 'Pages/User/ProfilePage.dart';
 import 'Pages/Farm/AddFarmPage.dart';
+import 'Pages/Farm/FarmAlertsPage.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'Pages/User/SplashPage.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(MyApp());
 }
 
@@ -21,7 +26,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      initialRoute: '/login', // start at login page
+      home: SplashPage(),
       routes: {
         '/login': (context) => LoginPage(),
         '/home': (context) => HomePage(),
@@ -32,6 +37,14 @@ class MyApp extends StatelessWidget {
             farm_id: int.parse(args["farm_id"]!),
             name: args["name"]!,
             location: args["location"]!,
+          );
+        },
+        '/farmAlerts': (context) {
+          final args =
+          ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          return FarmAlertsPage(
+            farmId:  args["farm_id"],
+            farmName: args["farm_name"]!,
           );
         },
         '/addFarm': (context) => AddFarmPage(),

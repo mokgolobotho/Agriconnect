@@ -18,10 +18,9 @@ class _AddCropPageState extends State<AddCropPage> {
   final TextEditingController _quantityController = TextEditingController();
 
   DateTime? _plantingDate;
-  DateTime? _harvestDate;
   bool _isLoading = false;
 
-  Future<void> _pickDate({required bool isPlanting}) async {
+  Future<void> _pickPlantingDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -30,11 +29,7 @@ class _AddCropPageState extends State<AddCropPage> {
     );
     if (picked != null) {
       setState(() {
-        if (isPlanting) {
-          _plantingDate = picked;
-        } else {
-          _harvestDate = picked;
-        }
+        _plantingDate = picked;
       });
     }
   }
@@ -42,9 +37,9 @@ class _AddCropPageState extends State<AddCropPage> {
   Future<void> _submitCrop() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (_plantingDate == null || _harvestDate == null) {
+    if (_plantingDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select both planting and harvest dates")),
+        const SnackBar(content: Text("Please select a planting date")),
       );
       return;
     }
@@ -56,7 +51,7 @@ class _AddCropPageState extends State<AddCropPage> {
       name: _nameController.text.trim(),
       quantity: int.parse(_quantityController.text.trim()),
       plantingDate: _plantingDate!.toIso8601String(),
-      harvestDate: _harvestDate!.toIso8601String(),
+      // No harvestDate here — Django created_at handles creation timestamp
     );
 
     setState(() => _isLoading = false);
@@ -65,7 +60,7 @@ class _AddCropPageState extends State<AddCropPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result['data']['message'] ?? "Crop added successfully")),
       );
-      Navigator.pop(context, true); // Return true to refresh the farm crop list
+      Navigator.pop(context, true); // Return to previous page and refresh
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result['data']['error'] ?? "Failed to add crop")),
@@ -107,26 +102,13 @@ class _AddCropPageState extends State<AddCropPage> {
                   validator: (value) => value == null || value.isEmpty ? "Enter quantity" : null,
                 ),
                 const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => _pickDate(isPlanting: true),
-                        child: Text(_plantingDate == null
-                            ? "Select Planting Date"
-                            : "Planting: ${_plantingDate!.toLocal().toString().split(' ')[0]}"),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => _pickDate(isPlanting: false),
-                        child: Text(_harvestDate == null
-                            ? "Select Harvest Date"
-                            : "Harvest: ${_harvestDate!.toLocal().toString().split(' ')[0]}"),
-                      ),
-                    ),
-                  ],
+                OutlinedButton(
+                  onPressed: _pickPlantingDate,
+                  child: Text(
+                    _plantingDate == null
+                        ? "Select Planting Date"
+                        : "Planting: ${_plantingDate!.toLocal().toString().split(' ')[0]}",
+                  ),
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
@@ -134,6 +116,9 @@ class _AddCropPageState extends State<AddCropPage> {
                   height: 50,
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _submitCrop,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green.shade700,
+                    ),
                     child: _isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
                         : const Text("Add Crop", style: TextStyle(fontSize: 16)),

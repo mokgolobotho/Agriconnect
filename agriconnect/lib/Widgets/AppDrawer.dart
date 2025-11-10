@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../Services/api_service.dart';
 
 class AppDrawer extends StatelessWidget {
   final List<Map<String, dynamic>> menuItems;
@@ -9,6 +11,38 @@ class AppDrawer extends StatelessWidget {
     required this.menuItems,
     required this.currentPage,
   }) : super(key: key);
+
+  Future<void> _logout(BuildContext context) async {
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getInt('user_id');
+
+    if (userId != null) {
+      final response = await ApiService.logoutUser(); // API call to deactivate device
+
+      // Clear cache
+      await prefs.clear();
+
+      Navigator.pop(context); // Close loading dialog
+
+      if (response['success'] == true) {
+        Navigator.pushReplacementNamed(context, '/login');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(response['message'] ?? "Logout failed")),
+        );
+      }
+    } else {
+      Navigator.pop(context);
+      Navigator.pushReplacementNamed(context, '/login');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,8 +68,12 @@ class AppDrawer extends StatelessWidget {
                   onTap: () {
                     Navigator.pop(context);
                     if (currentPage != item["title"]) {
-                      Navigator.pushReplacementNamed(
-                          context, item["route"] as String);
+                      if (item.containsKey("onTap")) {
+                        item["onTap"]();
+                      } else if (item.containsKey("route")) {
+                        Navigator.pushReplacementNamed(
+                            context, item["route"] as String);
+                      }
                     }
                   },
                 );
@@ -44,11 +82,9 @@ class AppDrawer extends StatelessWidget {
           ),
           Divider(),
           ListTile(
-            leading: Icon(Icons.logout),
+            leading: Icon(Icons.logout, color: Colors.red),
             title: Text("Logout"),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/login');
-            },
+            onTap: () => _logout(context),
           ),
         ],
       ),

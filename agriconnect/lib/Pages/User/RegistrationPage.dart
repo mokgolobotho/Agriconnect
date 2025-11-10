@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../Services/api_service.dart';
 import '../Home/HomePage.dart';
 
@@ -20,6 +22,19 @@ class _RegistrationPageState extends State<RegistrationPage> {
   bool _isValidEmail(String email) {
     final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
     return emailRegex.hasMatch(email);
+  }
+
+  // Save FCM token to backend
+  Future<void> _saveFcmToken(int userId) async {
+    String? fcmToken = await FirebaseMessaging.instance.getToken();
+    if (fcmToken != null) {
+      await ApiService.saveFcmToken(
+        userId: userId,
+        fcmToken: fcmToken,
+        deviceName: "My Device",
+      );
+      print("FCM token saved: $fcmToken");
+    }
   }
 
   Future<void> _register() async {
@@ -70,13 +85,24 @@ class _RegistrationPageState extends State<RegistrationPage> {
     setState(() => _isLoading = false);
 
     if (result['success']) {
+      final user = result['data']['user'];
+
+      // Save user_id and token to SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('user_id', user['id']);
+      await prefs.setString('token', result['data']['token'] ?? '');
+
+      // Save FCM token to backend
+      await _saveFcmToken(user['id']);
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Registered successfully ✅")),
       );
 
+      // Redirect to HomePage
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => HomePage()),
+        MaterialPageRoute(builder: (_) => HomePage()),
       );
     } else {
       String errorMsg = result['error'].toString();
@@ -154,7 +180,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
               ),
               SizedBox(height: 25),
               _isLoading
-                  ? CircularProgressIndicator() // ✅ Show loader
+                  ? CircularProgressIndicator()
                   : ElevatedButton(
                 onPressed: _register,
                 style: ElevatedButton.styleFrom(

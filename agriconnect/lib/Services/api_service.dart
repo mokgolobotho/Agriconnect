@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:path/path.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  //static const String baseUrl = 'http://192.168.0.117:8000/api';
-  static const String baseUrl = 'http://192.168.50.140:8000/api';
+  static const String baseUrl = 'http://192.168.0.189:8000/api';
+  //static const String baseUrl = 'http://192.168.50.140:8000/api';
 
 
   static Future<Map<String, dynamic>> registerUser({
@@ -133,7 +133,6 @@ class ApiService {
     required String name,
     required int quantity,
     required String plantingDate,
-    required String harvestDate,
   }) async {
     try {
       final response = await http.post(
@@ -157,6 +156,68 @@ class ApiService {
       }
     } catch (e) {
       return {"success": false, "data": {"error": e.toString()}};
+    }
+  }
+
+  static Future<Map<String, dynamic>> saveFcmToken({
+    required int userId,
+    required String fcmToken,
+    String deviceName = "",
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/saveFcmToken/'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "user_id": userId,
+          "fcm_token": fcmToken,
+          "device_name": deviceName,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {"success": true, "data": data};
+      } else {
+        return {
+          "success": false,
+          "error": jsonDecode(response.body)["error"] ?? "Failed to save token"
+        };
+      }
+    } catch (e) {
+      return {"success": false, "error": e.toString()};
+    }
+  }
+  static Future<Map<String, dynamic>> getFarmAlerts({required int farmId}) async {
+    final url = Uri.parse("$baseUrl/api/farms/$farmId/fertility-alerts/");
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception("Failed to fetch farm alerts");
+    }
+  }
+
+  static Future<Map<String, dynamic>> logoutUser() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      int? userId = prefs.getInt('user_id');
+
+      if (userId == null) {
+        return {"success": false, "message": "User ID not found in cache."};
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/logout/'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"user_id": userId}),
+      );
+
+      final data = jsonDecode(response.body);
+      return data;
+    } catch (e) {
+      return {"success": false, "message": "Logout failed: $e"};
     }
   }
 }
