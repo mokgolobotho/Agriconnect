@@ -5,7 +5,11 @@ class AddCropPage extends StatefulWidget {
   final int farmId;
   final String farmName;
 
-  const AddCropPage({required this.farmId, required this.farmName, Key? key}) : super(key: key);
+  const AddCropPage({
+    required this.farmId,
+    required this.farmName,
+    Key? key,
+  }) : super(key: key);
 
   @override
   State<AddCropPage> createState() => _AddCropPageState();
@@ -23,10 +27,11 @@ class _AddCropPageState extends State<AddCropPage> {
   Future<void> _pickPlantingDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: _plantingDate ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
     );
+
     if (picked != null) {
       setState(() {
         _plantingDate = picked;
@@ -46,12 +51,15 @@ class _AddCropPageState extends State<AddCropPage> {
 
     setState(() => _isLoading = true);
 
+    // Convert to "YYYY-MM-DD"
+    final formattedDate =
+        "${_plantingDate!.year}-${_plantingDate!.month.toString().padLeft(2, '0')}-${_plantingDate!.day.toString().padLeft(2, '0')}";
+
     final result = await ApiService.AddCrops(
       farmId: widget.farmId,
       name: _nameController.text.trim(),
       quantity: int.parse(_quantityController.text.trim()),
-      plantingDate: _plantingDate!.toIso8601String(),
-      // No harvestDate here — Django created_at handles creation timestamp
+      plantingDate: formattedDate, // ✅ Send string, not DateTime
     );
 
     setState(() => _isLoading = false);
@@ -60,7 +68,7 @@ class _AddCropPageState extends State<AddCropPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result['data']['message'] ?? "Crop added successfully")),
       );
-      Navigator.pop(context, true); // Return to previous page and refresh
+      Navigator.pop(context, true);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result['data']['error'] ?? "Failed to add crop")),
@@ -89,7 +97,8 @@ class _AddCropPageState extends State<AddCropPage> {
                     labelText: "Crop Name",
                     border: OutlineInputBorder(),
                   ),
-                  validator: (value) => value == null || value.isEmpty ? "Enter crop name" : null,
+                  validator: (value) =>
+                  value == null || value.isEmpty ? "Enter crop name" : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -99,7 +108,8 @@ class _AddCropPageState extends State<AddCropPage> {
                     labelText: "Quantity",
                     border: OutlineInputBorder(),
                   ),
-                  validator: (value) => value == null || value.isEmpty ? "Enter quantity" : null,
+                  validator: (value) =>
+                  value == null || value.isEmpty ? "Enter quantity" : null,
                 ),
                 const SizedBox(height: 16),
                 OutlinedButton(
@@ -107,7 +117,7 @@ class _AddCropPageState extends State<AddCropPage> {
                   child: Text(
                     _plantingDate == null
                         ? "Select Planting Date"
-                        : "Planting: ${_plantingDate!.toLocal().toString().split(' ')[0]}",
+                        : "Planting Date: ${_plantingDate!.year}-${_plantingDate!.month.toString().padLeft(2, '0')}-${_plantingDate!.day.toString().padLeft(2, '0')}",
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -121,7 +131,10 @@ class _AddCropPageState extends State<AddCropPage> {
                     ),
                     child: _isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text("Add Crop", style: TextStyle(fontSize: 16)),
+                        : const Text(
+                      "Add Crop",
+                      style: TextStyle(fontSize: 16),
+                    ),
                   ),
                 ),
               ],

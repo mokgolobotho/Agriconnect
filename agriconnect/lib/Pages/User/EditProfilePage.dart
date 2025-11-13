@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../Services/api_service.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({Key? key}) : super(key: key);
@@ -14,22 +14,49 @@ class EditProfilePage extends StatefulWidget {
 class _EditProfilePageState extends State<EditProfilePage> {
   final _formKey = GlobalKey<FormState>();
 
-  // Controllers for profile details
-  final TextEditingController _nameController =
-  TextEditingController(text: "John Doe");
-  final TextEditingController _emailController =
-  TextEditingController(text: "johndoe@gmail.com");
-  final TextEditingController _phoneController =
-  TextEditingController(text: "+27 123 456 789");
-  final TextEditingController _locationController =
-  TextEditingController(text: "Pretoria, South Africa");
+  TextEditingController _firstNameController = TextEditingController();
+  TextEditingController _lastNameController = TextEditingController();
+  TextEditingController _phoneController = TextEditingController();
+  String? _serverProfileImageUrl;
 
   File? _profileImage;
+  bool isLoading = true;
+  int? userId;
 
   @override
   void initState() {
     super.initState();
-    _loadSavedImage();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getInt('user_id');
+
+    if (userId == null) {
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      final response = await ApiService.getUserProfile(userId: userId);
+      if (response['success']) {
+        final data = response['data'];
+        _firstNameController.text = data['first_name'] ?? '';
+        _lastNameController.text = data['last_name'] ?? '';
+        _phoneController.text = data['cell_number'] ?? '';
+        _serverProfileImageUrl = data['photo'];
+        setState(() {});
+      }
+    } catch (e) {
+      print("Error loading profile: $e");
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   Future<void> _pickImage() async {
@@ -37,67 +64,73 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
 
     if (pickedFile != null) {
-      File tempImage = File(pickedFile.path);
-
-      // Save image to local storage
-      final directory = await getApplicationDocumentsDirectory();
-      final String path = directory.path;
-      final String fileName = basename(pickedFile.path);
-      final File localImage = await tempImage.copy('$path/$fileName');
-
       setState(() {
-        _profileImage = localImage;
+        _profileImage = File(pickedFile.path);
       });
     }
   }
 
-  Future<void> _loadSavedImage() async {
-    final directory = await getApplicationDocumentsDirectory();
-    final file = File('${directory.path}/profile.jpg');
-    if (await file.exists()) {
-      setState(() {
-        _profileImage = file;
-      });
-    }
-  }
+  Future<void> _saveProfile() async {
+    if (!_formKey.currentState!.validate()) return;
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getInt('user_id');
 
-  void _saveProfile() async {
-    if (_formKey.currentState!.validate()) {
-      // Save image permanently as "profile.jpg"
-      if (_profileImage != null) {
-        final directory = await getApplicationDocumentsDirectory();
-        final savedImage = await _profileImage!.copy('${directory.path}/profile.jpg');
-        setState(() {
-          _profileImage = savedImage;
-        });
+    if (userId == null) {
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      final response = await ApiService.updateUserProfile(
+        userId: userId,
+        firstName: _firstNameController.text,
+        lastName: _lastNameController.text,
+        phone: _phoneController.text,
+        profileImage: _profileImage,
+      );
+
+      if (response['success']) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Profile updated successfully!")),
+        );
+        Navigator.pop(context, true); // go back and refresh profile page
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to update profile: ${response['message']}")),
+        );
       }
-
-
+    } catch (e) {
+      print("Error updating profile: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("An error occurred while updating profile.")),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Edit Profile"),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+      appBar: AppBar(title: const Text("Edit Profile"), centerTitle: true),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: Column(
             children: [
-              // Profile picture
               Stack(
                 alignment: Alignment.bottomRight,
                 children: [
                   CircleAvatar(
                     radius: 70,
                     backgroundImage: _profileImage != null
-                        ? FileImage(_profileImage!)
-                        : const AssetImage("Assets/profile.png") as ImageProvider,
+                        ? FileImage(_profileImage!) // picked image
+                        : (_serverProfileImageUrl != null
+                        ? NetworkImage(_serverProfileImageUrl!) // server image
+                        : AssetImage("assets/profile.png") as ImageProvider), // fallback
                   ),
                   IconButton(
                     icon: const Icon(Icons.camera_alt, color: Colors.blue),
@@ -106,19 +139,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 ],
               ),
               const SizedBox(height: 20),
-
-              // Form fields
               TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: "Name"),
+                controller: _firstNameController,
+                decoration: const InputDecoration(labelText: "First Name"),
                 validator: (value) =>
-                value!.isEmpty ? "Please enter your name" : null,
+                value!.isEmpty ? "Please enter your first name" : null,
               ),
               TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(labelText: "Email"),
+                controller: _lastNameController,
+                decoration: const InputDecoration(labelText: "Surname"),
                 validator: (value) =>
-                value!.isEmpty ? "Please enter your email" : null,
+                value!.isEmpty ? "Please enter your surname" : null,
               ),
               TextFormField(
                 controller: _phoneController,
@@ -126,20 +157,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 validator: (value) =>
                 value!.isEmpty ? "Please enter your phone number" : null,
               ),
-              TextFormField(
-                controller: _locationController,
-                decoration: const InputDecoration(labelText: "Location"),
-              ),
               const SizedBox(height: 30),
-
-              // Save button
               ElevatedButton.icon(
                 onPressed: _saveProfile,
                 icon: const Icon(Icons.save),
                 label: const Text("Save Changes"),
                 style: ElevatedButton.styleFrom(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                   textStyle: const TextStyle(fontSize: 16),
                 ),
               ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'Pages/Crop/HarvestedCropsDashboardPage.dart';
 import 'Pages/Farm/SensorDetailPage.dart';
+import 'Pages/Feedback/FeedbackPage.dart';
 import 'Pages/User/EditProfilePage.dart';
 import 'Pages/User/LoginPage.dart';
 import 'Pages/Farm/FarmDetailPage.dart';
@@ -56,6 +58,27 @@ class MyApp extends StatelessWidget {
           );
         },
         '/editProfile': (context) => EditProfilePage(),
+        '/feedback': (context) =>  FeedbackPage(),
+        '/HarvestedCropsDashboardPage': (context) {
+          final args =
+          ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+
+          if (args == null || args['farmId'] == null) {
+            // If arguments missing, return an error page or fallback
+            return Scaffold(
+              body: Center(child: Text("No farm selected.")),
+            );
+          }
+
+          return HarvestedCropsDashboardPage(
+            farmId: args['farmId'],
+            farmName: args['farmName'] ?? '',
+          );
+        },
+
+
+
+
       },
     );
   }

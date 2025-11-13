@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io';
 
 class ApiService {
   static const String baseUrl = 'http://192.168.0.189:8000/api';
-  //static const String baseUrl = 'http://192.168.50.140:8000/api';
+  //static const String baseUrl = 'http://192.168.254.140:8000/api';
 
 
   static Future<Map<String, dynamic>> registerUser({
@@ -14,24 +15,40 @@ class ApiService {
     required String email,
     required String cellNumber,
     required String password,
+    required String dob,
+    required String gender,
+    required String title,
   }) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/register/'),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({
-        "first_name": first_name,
-        "last_name": last_name,
-        "username": email,
-        "email": email,
-        "cell_number": cellNumber,
-        "password": password,
-      }),
-    );
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/register/'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "first_name": first_name,
+          "last_name": last_name,
+          "username": username,
+          "email": email,
+          "cell_number": cellNumber,
+          "password": password,
+          "dob": dob,
+          "gender": gender,
+          "title": title,
+        }),
+      );
 
-    if (response.statusCode == 201) {
-      return {"success": true, "data": jsonDecode(response.body)};
-    } else {
-      return {"success": false, "error": jsonDecode(response.body)};
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return jsonDecode(response.body);
+      } else {
+        return {
+          "success": false,
+          "error": "Server returned status code ${response.statusCode}",
+        };
+      }
+    } catch (e) {
+      return {
+        "success": false,
+        "error": e.toString(),
+      };
     }
   }
 
@@ -142,7 +159,7 @@ class ApiService {
           "farm_id": farmId,
           "name": name,
           "quantity": quantity,
-          //"planting_date": plantingDate,
+          "planting_date": plantingDate,
           //"harvest_date": harvestDate,
           "created_at": DateTime.now().toIso8601String(),
           "updated_at": DateTime.now().toIso8601String(),
@@ -189,7 +206,7 @@ class ApiService {
     }
   }
   static Future<Map<String, dynamic>> getFarmAlerts({required int farmId}) async {
-    final url = Uri.parse("$baseUrl/api/farms/$farmId/fertility-alerts/");
+    final url = Uri.parse("$baseUrl/farms/$farmId/fertility-alerts/");
     final response = await http.get(url);
 
     if (response.statusCode == 200) {
@@ -218,6 +235,114 @@ class ApiService {
       return data;
     } catch (e) {
       return {"success": false, "message": "Logout failed: $e"};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getCropSensorData(int cropId) async {
+    final url = Uri.parse('$baseUrl/sensorData/$cropId/');
+
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception("Failed to load sensor data");
+      }
+    } catch (e) {
+      throw Exception("Error fetching sensor data: $e");
+    }
+  }
+  static Future<Map<String, dynamic>> submitFeedback({
+    required int userId,
+    required String message,
+    required int rating,
+  }) async {
+    final url = Uri.parse('$baseUrl/feedback/');
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'user_id': userId,
+        'message': message,
+        'rating': rating,
+      }),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return jsonDecode(response.body);
+    } else {
+      return {'success': false, 'message': 'Failed to send feedback'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getUserProfile({required int userId}) async {
+    final response = await http.get(Uri.parse('$baseUrl/profile/$userId/'));
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to fetch profile');
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateUserProfile({
+    required int userId,
+    required String firstName,
+    required String lastName,
+    required String phone,
+    File? profileImage,
+  }) async {
+    var uri = Uri.parse('$baseUrl/profile/$userId/');
+    var request = http.MultipartRequest('PUT', uri);
+
+    request.fields['first_name'] = firstName;
+    request.fields['last_name'] = lastName;
+    request.fields['cell_number'] = phone;
+
+    if (profileImage != null) {
+      request.files.add(await http.MultipartFile.fromPath(
+        'photo',
+        profileImage.path,
+      ));
+    }
+
+    var streamedResponse = await request.send();
+    var response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return jsonDecode(response.body);
+    } else {
+      print('Error: ${response.statusCode} ${response.body}');
+      return {'success': false, 'message': 'Failed to update profile'};
+    }
+  }
+  static Future<Map<String, dynamic>> getCropRecommendations({required int cropId}) async {
+    final url = Uri.parse('$baseUrl/crops/$cropId/fertility-recommendations/');
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        return {"success": false};
+      }
+    } catch (e) {
+      print("API error: $e");
+      return {"success": false};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getFarmHarvestedCrops({
+    required int farm_id,
+  })async{
+    final response = await http.get(
+        Uri.parse('$baseUrl/getFarmHarvestedCrops/$farm_id'),
+        headers: {"content-type": "application/json"}
+    );
+
+    if(response.statusCode == 200){
+      return{"success": true, "data": jsonDecode(response.body)};
+    }else{
+      return {"success": false, "data": jsonDecode(response.body)};
     }
   }
 }

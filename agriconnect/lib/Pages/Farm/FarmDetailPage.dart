@@ -37,7 +37,19 @@ class _FarmDetailPageState extends State<FarmDetailPage> {
     menuItems = [
       {"title": "Home", "icon": Icons.home, "route": "/home"},
       {"title": "Give Feedback", "icon": Icons.feedback, "onTap": () => Navigator.pushNamed(context, '/feedback')},
-      {"title": "Logout", "icon": Icons.logout, "onTap": () => Navigator.pushReplacementNamed(context, '/login')},
+      {
+        "title": "Harvested crops",
+        "icon": Icons.eco,
+        "onTap": () => Navigator.pushNamed(
+          context,
+          '/HarvestedCropsDashboardPage',
+          arguments: {
+            'farmId': widget.farm_id,
+            'farmName': widget.name,
+          },
+        ),
+      },
+
     ];
   }
 
@@ -67,7 +79,7 @@ class _FarmDetailPageState extends State<FarmDetailPage> {
       appBar: AppBar(
         title: Text(widget.name),
         centerTitle: true,
-        backgroundColor: Colors.green.shade200,
+        backgroundColor: Colors.green.shade500,
         actions: [
           IconButton(
             icon: const Icon(Icons.add_alert, color: Colors.red,),
@@ -139,7 +151,7 @@ class _FarmDetailPageState extends State<FarmDetailPage> {
                             fontSize: 16,
                           ),
                         ),
-                        subtitle: Text("Type: ${crop['type'] ?? 'N/A'}"),
+                        subtitle: Text("Planting date: ${crop['planting_date'] ?? 'N/A'}"),
                         trailing: const Icon(Icons.arrow_forward_ios, size: 18),
                       ),
                     ),

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
+import '../../Services/api_service.dart';
+import 'CropAlertsPage.dart';
 
 class CropDashboardPage extends StatefulWidget {
   final int cropId;
@@ -17,6 +20,31 @@ class CropDashboardPage extends StatefulWidget {
 
 class _CropDashboardPageState extends State<CropDashboardPage> {
   String selectedFilter = "Day";
+  List<dynamic> sensorData = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSensorData();
+  }
+
+  Future<void> _fetchSensorData() async {
+    try {
+      final result = await ApiService.getCropSensorData(widget.cropId);
+      if (result["success"] == true) {
+        setState(() {
+          sensorData = result["records"];
+          isLoading = false;
+        });
+      } else {
+        setState(() => isLoading = false);
+      }
+    } catch (e) {
+      print("Error: $e");
+      setState(() => isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,97 +53,79 @@ class _CropDashboardPageState extends State<CropDashboardPage> {
         title: Text(widget.cropName),
         backgroundColor: Colors.green.shade700,
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add_alert, color: Colors.red,),
+            tooltip: "View Farm Alerts",
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CropAlertsPage(
+                    cropId: widget.cropId,
+                    cropName: widget.cropName,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : sensorData.isEmpty
+          ? const Center(child: Text("No sensor data available."))
+          : SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            Text(
+            const Text(
               "🌿 Crop Monitoring Dashboard",
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
             Text("Crop ID: ${widget.cropId}"),
-
             const SizedBox(height: 20),
 
-            // Filter dropdown
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("View by:",
-                    style:
-                    TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                DropdownButton<String>(
-                  value: selectedFilter,
-                  items: ["Hour", "Day", "Week", "Monthly"]
-                      .map((filter) => DropdownMenuItem(
-                    value: filter,
-                    child: Text(filter),
-                  ))
-                      .toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedFilter = value!;
-                    });
-                  },
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 20),
-
-            // 🌡 Sensor Graphs Section
-            Text(
+            /// 📟 Real Sensor Graphs
+            const Text(
               "📟 Sensor Readings",
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            _buildGraphCard(
-              title: "Soil Moisture (%)",
-              color: Colors.blue,
-              spots: _generateSpots(selectedFilter, 40, 65),
-            ),
+
             _buildGraphCard(
               title: "Temperature (°C)",
               color: Colors.red,
-              spots: _generateSpots(selectedFilter, 20, 35),
+              fieldName: "temperature",
             ),
             _buildGraphCard(
-              title: "Humidity (%)",
-              color: Colors.cyan,
-              spots: _generateSpots(selectedFilter, 50, 80),
+              title: "Rainfall (mm)",
+              color: Colors.blue,
+              fieldName: "rainfall",
             ),
             _buildGraphCard(
-              title: "NPK Levels (mg/kg)",
-              color: Colors.purple,
-              spots: _generateSpots(selectedFilter, 20, 45),
-            ),
-
-            const SizedBox(height: 30),
-
-            // 🤖 Prediction Graphs Section
-            Text(
-              "📈 Prediction Graphs",
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            _buildGraphCard(
-              title: "Predicted Moisture Trend",
-              color: Colors.teal,
-              spots: _generateSpots(selectedFilter, 45, 70, isPrediction: true),
-            ),
-            _buildGraphCard(
-              title: "Predicted NPK Trend",
-              color: Colors.deepPurple,
-              spots: _generateSpots(selectedFilter, 25, 50, isPrediction: true),
-            ),
-            _buildGraphCard(
-              title: "Predicted Weather Temperature",
+              title: "Soil pH",
               color: Colors.orange,
-              spots: _generateSpots(selectedFilter, 18, 33, isPrediction: true),
+              fieldName: "ph",
+            ),
+            _buildGraphCard(
+              title: "Nitrogen (mg/kg)",
+              color: Colors.green,
+              fieldName: "nitrogen",
+            ),
+            _buildGraphCard(
+              title: "Phosphorus (mg/kg)",
+              color: Colors.purple,
+              fieldName: "phosphorus",
+            ),
+            _buildGraphCard(
+              title: "Potassium (mg/kg)",
+              color: Colors.teal,
+              fieldName: "potassium",
             ),
           ],
         ),
@@ -123,12 +133,14 @@ class _CropDashboardPageState extends State<CropDashboardPage> {
     );
   }
 
-  /// 🔹 Reusable graph card
   Widget _buildGraphCard({
     required String title,
     required Color color,
-    required List<FlSpot> spots,
+    required String fieldName,
   }) {
+    final spots = _generateSpotsFromData(fieldName);
+    final timeLabels = _generateTimeLabels(spots);
+
     return Card(
       elevation: 4,
       margin: const EdgeInsets.symmetric(vertical: 10),
@@ -144,7 +156,7 @@ class _CropDashboardPageState extends State<CropDashboardPage> {
             const SizedBox(height: 10),
             SizedBox(
               height: 200,
-              child: LineChart(_lineChartData(color, spots)),
+              child: LineChart(_lineChartData(color, spots, timeLabels)),
             ),
           ],
         ),
@@ -152,23 +164,32 @@ class _CropDashboardPageState extends State<CropDashboardPage> {
     );
   }
 
-  /// 🔹 Generate sample or prediction data points
-  List<FlSpot> _generateSpots(String filter, double min, double max,
-      {bool isPrediction = false}) {
-    final randomOffsets = [0, 1, 2, 3, 4, 5, 6];
+  List<FlSpot> _generateSpotsFromData(String fieldName) {
     List<FlSpot> spots = [];
-
-    for (var x in randomOffsets) {
-      double y = min + (max - min) * (0.5 + (x % 3) * 0.1);
-      if (isPrediction) y += 2; // simulate predicted increase
-      spots.add(FlSpot(x.toDouble(), y));
+    for (var record in sensorData) {
+      if (record["recorded_at"] != null) {
+        final time =
+        DateTime.parse(record["recorded_at"]).millisecondsSinceEpoch
+            .toDouble();
+        final value = double.tryParse(record[fieldName].toString()) ?? 0.0;
+        spots.add(FlSpot(time, value));
+      }
     }
-
     return spots;
   }
 
-  /// 🔹 Create chart style
-  LineChartData _lineChartData(Color color, List<FlSpot> spots) {
+  Map<double, String> _generateTimeLabels(List<FlSpot> spots) {
+    Map<double, String> labels = {};
+    for (var spot in spots) {
+      final date =
+      DateTime.fromMillisecondsSinceEpoch(spot.x.toInt());
+      labels[spot.x] = DateFormat('HH:mm').format(date);
+    }
+    return labels;
+  }
+
+  LineChartData _lineChartData(
+      Color color, List<FlSpot> spots, Map<double, String> timeLabels) {
     return LineChartData(
       minY: 0,
       gridData: FlGridData(show: true),
@@ -178,7 +199,19 @@ class _CropDashboardPageState extends State<CropDashboardPage> {
           sideTitles: SideTitles(showTitles: true, reservedSize: 40),
         ),
         bottomTitles: AxisTitles(
-          sideTitles: SideTitles(showTitles: true, reservedSize: 30),
+          sideTitles: SideTitles(
+            showTitles: true,
+            reservedSize: 35,
+            getTitlesWidget: (value, meta) {
+              final label = timeLabels[value];
+              if (label != null) {
+                return Text(label,
+                    style: const TextStyle(
+                        fontSize: 10, color: Colors.black87));
+              }
+              return const SizedBox.shrink();
+            },
+          ),
         ),
         rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
         topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
