@@ -26,7 +26,6 @@ class _LoginPageState extends State<LoginPage> {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getInt('user_id') ?? 0;
     if (userId > 0) {
-      // Already logged in, go to HomePage
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => HomePage()),

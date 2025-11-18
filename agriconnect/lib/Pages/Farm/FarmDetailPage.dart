@@ -49,7 +49,18 @@ class _FarmDetailPageState extends State<FarmDetailPage> {
           },
         ),
       },
-
+      {
+        "title": "Weather Alerts",
+        "icon": Icons.cloud,
+        "onTap": () => Navigator.pushNamed(
+          context,
+          '/WeatherAlertsPage',
+          arguments: {
+            'farmId': widget.farm_id,
+            'farmName': widget.name,
+          },
+        ),
+      },
     ];
   }
 
@@ -67,9 +78,9 @@ class _FarmDetailPageState extends State<FarmDetailPage> {
       }
     } catch (e) {
       setState(() => isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error loading crops: $e")),
-      );
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   SnackBar(content: Text("Error loading crops: $e")),
+      // );
     }
   }
 

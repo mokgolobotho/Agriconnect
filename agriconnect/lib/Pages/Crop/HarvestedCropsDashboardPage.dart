@@ -72,7 +72,7 @@ class _HarvestedCropsDashboardPageState
         backgroundColor: Colors.green.shade500,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context), // ✅ simple back button
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Padding(
@@ -130,7 +130,6 @@ class _HarvestedCropsDashboardPageState
                           ),
                         ),
                         subtitle: Text(
-                          "Type: ${crop['type'] ?? 'N/A'}\n"
                               "Harvested: ${_formatDate(crop['harvest_date'])}",
                         ),
                         trailing: const Icon(

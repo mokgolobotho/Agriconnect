@@ -46,6 +46,64 @@ class _CropDashboardPageState extends State<CropDashboardPage> {
     }
   }
 
+  /// ================= Harvest Crop Functions =================
+  Future<void> _confirmHarvest(BuildContext context) async {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Confirm Harvest"),
+          content: const Text(
+            "Are you sure you want to harvest this crop?\n"
+                "This action will mark the crop as harvested today.",
+          ),
+          actions: [
+            TextButton(
+              child: const Text("Cancel"),
+              onPressed: () => Navigator.pop(context),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              child: const Text("Confirm"),
+              onPressed: () async {
+                Navigator.pop(context); // close dialog
+                await _harvestCrop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _harvestCrop() async {
+    try {
+      final result = await ApiService.harvestCrop(widget.cropId);
+
+      if (result.containsKey("error")) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result["error"]),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Crop harvested successfully!"),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context, true); // return success to previous page
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
+    }
+  }
+  /// ==========================================================
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -55,7 +113,7 @@ class _CropDashboardPageState extends State<CropDashboardPage> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_alert, color: Colors.red,),
+            icon: const Icon(Icons.add_alert, color: Colors.red),
             tooltip: "View Farm Alerts",
             onPressed: () {
               Navigator.push(
@@ -89,14 +147,13 @@ class _CropDashboardPageState extends State<CropDashboardPage> {
             Text("Crop ID: ${widget.cropId}"),
             const SizedBox(height: 20),
 
-            /// 📟 Real Sensor Graphs
+            /// 📟 Sensor Graphs
             const Text(
               "📟 Sensor Readings",
               style: TextStyle(
                   fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-
             _buildGraphCard(
               title: "Temperature (°C)",
               color: Colors.red,
@@ -130,6 +187,12 @@ class _CropDashboardPageState extends State<CropDashboardPage> {
           ],
         ),
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: Colors.green.shade700,
+        icon: const Icon(Icons.check),
+        label: const Text("Harvest Crop"),
+        onPressed: () => _confirmHarvest(context),
+      ),
     );
   }
 
@@ -151,8 +214,8 @@ class _CropDashboardPageState extends State<CropDashboardPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(title,
-                style:
-                const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                style: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
             SizedBox(
               height: 200,
@@ -168,8 +231,8 @@ class _CropDashboardPageState extends State<CropDashboardPage> {
     List<FlSpot> spots = [];
     for (var record in sensorData) {
       if (record["recorded_at"] != null) {
-        final time =
-        DateTime.parse(record["recorded_at"]).millisecondsSinceEpoch
+        final time = DateTime.parse(record["recorded_at"])
+            .millisecondsSinceEpoch
             .toDouble();
         final value = double.tryParse(record[fieldName].toString()) ?? 0.0;
         spots.add(FlSpot(time, value));
@@ -181,8 +244,7 @@ class _CropDashboardPageState extends State<CropDashboardPage> {
   Map<double, String> _generateTimeLabels(List<FlSpot> spots) {
     Map<double, String> labels = {};
     for (var spot in spots) {
-      final date =
-      DateTime.fromMillisecondsSinceEpoch(spot.x.toInt());
+      final date = DateTime.fromMillisecondsSinceEpoch(spot.x.toInt());
       labels[spot.x] = DateFormat('HH:mm').format(date);
     }
     return labels;

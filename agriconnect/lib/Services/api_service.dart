@@ -5,6 +5,7 @@ import 'dart:io';
 
 class ApiService {
   static const String baseUrl = 'http://192.168.0.189:8000/api';
+
   //static const String baseUrl = 'http://192.168.254.140:8000/api';
 
 
@@ -345,4 +346,35 @@ class ApiService {
       return {"success": false, "data": jsonDecode(response.body)};
     }
   }
+  static Future<Map<String, dynamic>> getWeatherAlerts({
+    required int farmId,
+  }) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/getFarmWeatherAlerts/$farmId'),
+      headers: {"content-type": "application/json"},
+    );
+
+    if (response.statusCode == 200) {
+      return {
+        "success": true,
+        "data": jsonDecode(response.body),
+      };
+    } else {
+      return {
+        "success": false,
+        "data": jsonDecode(response.body),
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> harvestCrop(int cropId) async {
+    final response = await http.post(
+      Uri.parse("$baseUrl/harvestCrop/$cropId"),
+    );
+
+    return jsonDecode(response.body);
+  }
+
+
+
 }

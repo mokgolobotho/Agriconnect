@@ -13,7 +13,6 @@ class AppDrawer extends StatelessWidget {
   }) : super(key: key);
 
   Future<void> _logout(BuildContext context) async {
-    // Show loading dialog
     showDialog(
       context: context,
       barrierDismissible: false,
